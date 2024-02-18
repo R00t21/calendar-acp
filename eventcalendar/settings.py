@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,14 +21,19 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "i8e1s3!_(fjsiv%1pn3sb3o=s)!p*nzwh1$gp5-l&%nb!d=y_s"
+SECRET_KEY = os.environ.get('SECRET_KEY', default='your secret key')
+#SECRET_KEY = "i8e1s3!_(fjsiv%1pn3sb3o=s)!p*nzwh1$gp5-l&%nb!d=y_s"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = 'RENDER' not in os.environ
 #DEBUG = False
 DEFAULT_AUTO_FIELD='django.db.models.AutoField' 
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = []
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -45,6 +51,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -88,16 +95,23 @@ DATABASES = {
 
 """
 ##CONECTAR CON POSTGRES
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ACPDB',
-        'USER': 'postgres',
-        'PASSWORD': 'SMd47D90',
-        'HOST': 'localhost',
-        'PORT': '5433'   
-    }
+    'default': dj_database_url.config(
+        default='postgresql://SMd47D90:postgres@localhost:5433/ACPDB',
+        conn_max_age=600
+    )
 }
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.postgresql',
+#        'NAME': 'ACPDB',
+#        'USER': 'postgres',
+#        'PASSWORD': 'SMd47D90',
+#        'HOST': 'localhost',
+#        'PORT': '5433'   
+#    }
+#}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
@@ -137,6 +151,13 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 
 STATIC_URL = '/static/'
+
+if not DEBUG:    # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
+    # and renames the files with unique names for each version to support long-term caching
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
 #STATIC_ROOT=os.path.join(BASE_DIR, 'static/')
 
